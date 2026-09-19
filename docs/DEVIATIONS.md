@@ -46,6 +46,7 @@ gradient-magnitude dependence the paper's explanation relies on. Both are report
 | D-E01-3 | Llama-3 3B/8B + 15B continued-pretraining tokens | Qwen2.5-0.5B, no continued pretraining (stage A) |
 | D-E01-4 | InCA protocol, splits unpublished | own class order (seed 0), 20 train / 5-10 test per class, tasks of 10-15 classes |
 | D-E01-5 | prediction method unspecified | argmax over seen labels of mean per-token label log-prob, context = last 1,536 stream tokens |
+| D-E01-7 | not specified | label scoring in fp32; stream training in bf16 autocast with fp32 master weights |
 | D-E01-6 | baselines ICL, EWC, InCA | ICL + single-frequency control; EWC/InCA not run |
 
 ## E06 (Sec. 9.3)

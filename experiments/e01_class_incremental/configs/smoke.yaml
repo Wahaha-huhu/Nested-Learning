@@ -9,6 +9,7 @@ base_chunk: 512
 window_tokens: 2048
 ctx_tokens: 1536
 inner_lr: 2.0e-5
+eval_dtype: fp32                     # label scoring precision (bf16 rounding flips close decisions)
 arms:
   - {name: icl}
   - {name: cms_3lvl, level_chunks: [512, 1024, 2048], assignment: interleave}

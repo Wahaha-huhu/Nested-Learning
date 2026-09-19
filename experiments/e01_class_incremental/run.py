@@ -75,7 +75,7 @@ def run_arm(cfg, arm, tasks, stream, device):
     if arm.get("level_chunks"):
         adapter = ContinuumMemoryAdapter(model, arm["level_chunks"], arm.get("assignment",
                                          "interleave"), lr=cfg["inner_lr"])
-    scorer = LabelScorer(model, tok, device)
+    scorer = LabelScorer(model, tok, device, dtype=cfg.get("eval_dtype", "fp32"))
     ids, lossmask, ends, raw_ends = stream
     base, W = cfg["base_chunk"], cfg["window_tokens"]
     ids_t = torch.tensor(ids)

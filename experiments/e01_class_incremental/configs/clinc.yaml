@@ -9,6 +9,7 @@ base_chunk: 512                      # C_0: fastest update period, in tokens
 window_tokens: 2048                  # attention window while reading the stream
 ctx_tokens: 1536                     # stream tokens visible at test time (all arms)
 inner_lr: 2.0e-5                     # per-level AdamW; standard LLM fine-tuning LR, not tuned
+eval_dtype: fp32                     # label scoring precision (bf16 rounding flips close decisions)
 arms:
   - {name: icl}
   - {name: cms_1lvl, level_chunks: [512]}

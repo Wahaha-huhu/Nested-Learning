@@ -4,7 +4,11 @@
 The stream context (~1.5K tokens) is shared by every query at an evaluation point, so it is
 encoded once; each query extends it once; the candidate labels are then scored in a batch.
 Written against transformers 4.46 (DynamicCache). `self_check` compares with uncached scoring
-and is run automatically at the first evaluation of every arm.
+in fp32 (so it tests the caching logic, not bf16 rounding) at the first evaluation of every arm.
+
+Precision: scoring runs in fp32 by default. Under bf16 autocast, logits of magnitude ~20-30 are
+quantised in steps of ~0.125, and cached vs uncached kernels round differently (observed max
+difference 0.169 nats), which is enough to flip close label decisions.
 """
 from __future__ import annotations
 
@@ -23,8 +27,10 @@ def _cache(legacy, batch: int):
 
 
 class LabelScorer:
-    def __init__(self, model, tokenizer, device, cand_batch: int = 64):
+    def __init__(self, model, tokenizer, device, cand_batch: int = 64, dtype: str = "fp32"):
+        assert dtype in ("fp32", "bf16")
         self.model, self.tok, self.dev, self.cb = model, tokenizer, device, cand_batch
+        self.bf16 = dtype == "bf16" and device == "cuda"
         self.pad = tokenizer.pad_token_id if tokenizer.pad_token_id is not None else 0
         self._label_ids: dict[str, list[int]] = {}
 
@@ -34,7 +40,7 @@ class LabelScorer:
         return self._label_ids[label]
 
     def _fwd(self, ids, cache=None):
-        with torch.autocast("cuda", dtype=torch.bfloat16, enabled=self.dev == "cuda"):
+        with torch.autocast("cuda", dtype=torch.bfloat16, enabled=self.bf16):
             return self.model(input_ids=ids, past_key_values=cache, use_cache=True)
 
     @torch.no_grad()
@@ -78,18 +84,22 @@ class LabelScorer:
         for l in labels:
             lab = self.label_ids(l)
             ids = torch.tensor([ctx_ids + query_ids + lab], device=self.dev)
-            with torch.autocast("cuda", dtype=torch.bfloat16, enabled=self.dev == "cuda"):
+            with torch.autocast("cuda", dtype=torch.bfloat16, enabled=self.bf16):
                 logits = self.model(input_ids=ids).logits[0].float()
             lp = F.log_softmax(logits[-len(lab) - 1:-1], -1)
             res.append(lp.gather(-1, torch.tensor(lab, device=self.dev)[:, None]).mean())
         return torch.stack(res)
 
-    def self_check(self, ctx_ids, query_ids, labels, tol: float = 0.1) -> float:
+    def self_check(self, ctx_ids, query_ids, labels, tol: float = 0.02) -> float:
         labels = labels[:4]
-        a = self.score(self.encode_context(ctx_ids), query_ids, labels)
-        b = self.score_uncached(ctx_ids, query_ids, labels)
+        saved, self.bf16 = self.bf16, False          # compare in fp32: logic, not rounding
+        try:
+            a = self.score(self.encode_context(ctx_ids), query_ids, labels)
+            b = self.score_uncached(ctx_ids, query_ids, labels)
+        finally:
+            self.bf16 = saved
         err = float((a - b).abs().max())
         if err > tol:
             raise RuntimeError(f"cached scoring disagrees with uncached scoring (max err {err:.3f})"
-                               " - check the transformers version (pinned 4.46.x)")
+                               " in fp32 - a logic error; check the transformers version (4.46.x)")
         return err
