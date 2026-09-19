@@ -41,11 +41,10 @@ class NLReproLM(LM):
             for j, s in enumerate(seqs):               # right padding is harmless (causal)
                 x[j, :len(s) - 1] = torch.tensor(s[:-1])
             with torch.autocast("cuda", dtype=torch.bfloat16, enabled=self.dev == "cuda"):
-                logits = self.model(x.to(self.dev)).float()
-            lp = F.log_softmax(logits, -1)
-            for j, (s, n) in enumerate(zip(seqs, spans)):
+                logits = self.model(x.to(self.dev))
+            for j, (s, n) in enumerate(zip(seqs, spans)):   # upcast only the scored rows
                 tgt = torch.tensor(s[-n:], device=self.dev)
-                rows = lp[j, len(s) - 1 - n:len(s) - 1]
+                rows = F.log_softmax(logits[j, len(s) - 1 - n:len(s) - 1].float(), -1)
                 out.append((rows.gather(-1, tgt[:, None]).sum().item(),
                             bool((rows.argmax(-1) == tgt).all().item())))
         return out

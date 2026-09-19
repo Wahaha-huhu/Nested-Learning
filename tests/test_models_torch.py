@@ -94,3 +94,15 @@ def test_hope_stable_with_large_activations():
     assert torch.isfinite(y).all()
     torch.nn.functional.cross_entropy(y.reshape(-1, 97), x.reshape(-1)).backward()
     assert all(torch.isfinite(p.grad).all() for p in m.parameters() if p.grad is not None)
+
+
+def test_chunked_loss_matches_full_loss():
+    from nlrepro.train.losses import lm_loss
+    torch.manual_seed(0)
+    logits = torch.randn(3, 50, 97, requires_grad=True)
+    y = torch.randint(0, 97, (3, 50))
+    a = lm_loss(logits, y, rows_per_chunk=16)
+    ga, = torch.autograd.grad(a, logits)
+    b = torch.nn.functional.cross_entropy(logits.view(-1, 97), y.view(-1))
+    gb, = torch.autograd.grad(b, logits)
+    assert torch.allclose(a, b, atol=1e-6) and torch.allclose(ga, gb, atol=1e-7)

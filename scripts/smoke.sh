@@ -3,6 +3,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export HF_HOME=${HF_HOME:-/workspace/hf_cache} HF_DATASETS_TRUST_REMOTE_CODE=1
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 C6=experiments/e06_lm_from_scratch/configs
 SKIP_E01=${SKIP_E01:-0}
 if [ "$SKIP_E01" = "1" ]; then echo "== E01 smoke skipped"; else

@@ -34,8 +34,11 @@ Add 20-30% operational contingency after profiling. Storage: ~2 GB tokens + ~2 G
 
 ## A100 vs 4090
 
-Every current workload fits in 24 GB (0.5B fp32 master weights + AdamW state for its MLPs is
-~6 GB; the 110M models need < 20 GB at the configured micro-batches). Use the **4090**. Switch to
+Every current workload fits in 24 GB. E01: 0.5B fp32 master weights + AdamW state for its MLPs
+is ~6 GB. E06: the first profile OOMed at micro-batch 16 because the loss kept ~4 GiB fp32 copies
+of the (16 x 2048) x 32K logits; the loss is now chunked, and the profiler picks the largest
+micro-batch that fits while keeping 262,144 tokens per optimiser step (grad_accum compensates, so
+the optimisation is unchanged). Use the **4090**. Switch to
 an A100 80GB only for E01 with a 3B backbone (paper-nearer; ~45 GiB state if fully trained) or
 E06 above ~350M params.
 

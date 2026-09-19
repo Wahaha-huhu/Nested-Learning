@@ -18,6 +18,7 @@ import torch.nn.functional as F
 
 from nlrepro.data.tokens import TokenSampler, fixed_val_batches
 from nlrepro.models import build_model, count_params
+from nlrepro.train.losses import lm_loss
 from nlrepro.utils.common import JsonlLogger, environment, seed_everything, write_json
 
 
@@ -50,8 +51,7 @@ def evaluate_val(model, val_path, seq_len, n_seqs, batch_size, device, dtype) ->
     for x, y in fixed_val_batches(val_path, seq_len, n_seqs, batch_size, device):
         with torch.autocast("cuda", dtype=dtype, enabled=device.startswith("cuda")):
             logits = model(x)
-        tot += F.cross_entropy(logits.float().view(-1, logits.size(-1)), y.reshape(-1),
-                               reduction="sum").item()
+        tot += lm_loss(logits, y).item() * y.numel()
         n += y.numel()
     model.train()
     return tot / max(1, n)
@@ -121,7 +121,7 @@ def train(cfg: dict) -> dict:
             x, y = sampler.next()
             with torch.autocast("cuda", dtype=dtype, enabled=device == "cuda"):
                 logits = fwd(x)
-            loss = F.cross_entropy(logits.float().view(-1, logits.size(-1)), y.reshape(-1))
+            loss = lm_loss(logits, y)
             (loss / accum).backward()
             loss_acc += loss.item() / accum
         if not math.isfinite(loss_acc):
