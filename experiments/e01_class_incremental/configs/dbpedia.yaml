@@ -1,0 +1,15 @@
+# E01 stage A, DBpedia level-2 (70 classes; 7 tasks of 10). All values fixed a priori; see docs/EXPERIMENT_PLAN.md.
+dataset: dbpedia
+model_id: Qwen/Qwen2.5-0.5B          # Apache-2.0 base model; paper used Llama-3 3B/8B
+seed: 0
+n_tasks: 7                           # 10 classes per task
+train_per_class: 20                  # stream examples per class
+test_per_class: 10
+base_chunk: 512                      # C_0: fastest update period, in tokens
+window_tokens: 2048                  # attention window while reading the stream
+ctx_tokens: 1536                     # stream tokens visible at test time (all arms)
+inner_lr: 2.0e-5                     # per-level AdamW; standard LLM fine-tuning LR, not tuned
+arms:
+  - {name: icl}
+  - {name: cms_1lvl, level_chunks: [512]}
+  - {name: cms_3lvl, level_chunks: [512, 2048, 8192], assignment: interleave}

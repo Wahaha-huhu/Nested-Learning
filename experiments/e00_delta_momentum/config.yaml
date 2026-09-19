@@ -1,0 +1,20 @@
+# E00 / Figure 4. Only psi's functional form and the start point come from the paper.
+# All numeric constants below were fixed BEFORE running and are not tuned (docs/DEVIATIONS.md).
+landscape: {k: 10.0, a: 1.0, w: 2.0}
+optimizer:
+  eta: 0.004
+  alpha: 0.9
+  beta: 0.5
+  tol: 1.0e-6
+  patience: 10
+  max_steps: 20000
+  start: [-3.5, 2.0]          # paper
+conventions: [normalized, gd_l2]
+# Robustness report (not used to select anything).
+robustness_grid:
+  k: [5.0, 10.0, 20.0]
+  a: [0.5, 1.0, 2.0]
+  w: [1.0, 2.0, 4.0]
+  eta: [0.001, 0.002, 0.004]
+  alpha: [0.9, 0.95]
+  beta: [0.1, 0.25, 0.5]      # "normalized" convention only

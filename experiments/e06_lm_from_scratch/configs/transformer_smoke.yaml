@@ -1,0 +1,7 @@
+base: transformer_110m.yaml
+run_dir: /workspace/runs/e06_transformer_smoke
+data: {dir: /workspace/data/fineweb_smoke, train_tokens: 5_000_000, val_tokens: 500_000}
+model: {d_model: 128, n_layers: 2, n_heads: 4, ffn_hidden: 384}
+train: {train_tokens: 2_000_000, seq_len: 512, micro_batch: 4, grad_accum: 2, eval_every: 50,
+        ckpt_every: 100, val_seqs: 16, compile: false}
+guard: {max_projected_hours: 1}

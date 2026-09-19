@@ -1,0 +1,28 @@
+# Shared by both E06 arms. Fixed a priori; nothing here is tuned (docs/EXPERIMENT_PLAN.md).
+data:
+  dir: /workspace/data/fineweb_edu_llama32k
+  tokenizer: TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T   # Llama-2 32K SentencePiece
+  dataset: HuggingFaceFW/fineweb-edu
+  subset: sample-10BT
+  train_tokens: 1_050_000_000       # 1.0B used + margin
+  val_tokens: 5_000_000
+train:
+  seed: 0
+  data_seed: 1234                   # identical batch sequence for both arms
+  train_tokens: 1_000_000_000
+  seq_len: 2048
+  micro_batch: 16
+  grad_accum: 8                     # 262,144 tokens per optimiser step -> 3,815 steps
+  lr: 1.0e-3
+  min_lr_ratio: 0.1
+  warmup_frac: 0.02
+  weight_decay: 0.1
+  betas: [0.9, 0.95]
+  grad_clip: 1.0
+  log_every: 10
+  eval_every: 500
+  ckpt_every: 250
+  val_seqs: 256
+guard:
+  profile_steps: 30
+  usd_per_hour: 0.74                # RTX 4090 Runpod list price used in docs/COST_AND_FEASIBILITY.md

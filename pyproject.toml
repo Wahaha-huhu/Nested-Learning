@@ -1,0 +1,11 @@
+[project]
+name = "nlrepro"
+version = "0.1.0"
+description = "Proof-of-concept reproduction of Nested Learning (arXiv:2512.24695)"
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+include = ["nlrepro*", "experiments*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

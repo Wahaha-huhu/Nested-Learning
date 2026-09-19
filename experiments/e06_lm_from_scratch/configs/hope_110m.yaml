@@ -1,0 +1,19 @@
+base: common.yaml
+run_dir: /workspace/runs/e06_hope_110m
+model:
+  arch: hope
+  vocab_size: 32000
+  d_model: 768
+  n_layers: 12
+  n_heads: 12
+  titans: {chunk: 64, conv_width: 4, eta_max: 0.2, alpha_bias: 5.0, proj_lr_scale: 0.1,
+           proj_every: 1, self_modifying: true, self_values_memory: false}
+  cms_levels:
+    - {kind: incontext, chunk: 512, hidden_mult: 2, lr: 1.0}
+    - {kind: static, hidden: 1152}      # hidden reduced so total params match the baseline (+1%)
+train:
+  compile: false
+  micro_batch: 8                      # memory for per-chunk memory states; same tokens/step
+  grad_accum: 16
+guard:
+  max_projected_hours: 30             # ~ $22 at $0.74/h; raise explicitly if the profile justifies it

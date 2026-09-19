@@ -1,0 +1,9 @@
+# torch comes from the Runpod PyTorch image (tested target: torch 2.4-2.6, CUDA 12.x).
+transformers==4.46.3     # E01 cached scoring is written against this DynamicCache API
+datasets==2.21.0         # still supports script datasets (Banking77, some lm-eval tasks)
+lm_eval==0.4.5
+sentencepiece
+pyyaml
+numpy
+matplotlib
+pytest

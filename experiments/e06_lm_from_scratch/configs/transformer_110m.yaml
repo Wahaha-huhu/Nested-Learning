@@ -1,0 +1,14 @@
+base: common.yaml
+run_dir: /workspace/runs/e06_transformer_110m
+model:
+  arch: transformer
+  vocab_size: 32000
+  d_model: 768
+  n_layers: 12
+  n_heads: 12
+  ffn_hidden: 2048
+  max_len: 4096
+train:
+  compile: true
+guard:
+  max_projected_hours: 12

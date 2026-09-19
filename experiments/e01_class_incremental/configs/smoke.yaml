@@ -1,0 +1,14 @@
+# ~2-minute end-to-end check of the E01 pipeline (tiny stream). Not a result.
+dataset: clinc
+model_id: Qwen/Qwen2.5-0.5B
+seed: 0
+n_tasks: 2
+train_per_class: 3
+test_per_class: 1
+base_chunk: 512
+window_tokens: 2048
+ctx_tokens: 1536
+inner_lr: 2.0e-5
+arms:
+  - {name: icl}
+  - {name: cms_3lvl, level_chunks: [512, 1024, 2048], assignment: interleave}
