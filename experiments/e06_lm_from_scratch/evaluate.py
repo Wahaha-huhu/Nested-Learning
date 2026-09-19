@@ -27,8 +27,14 @@ def main():
     a = ap.parse_args()
     cfg = load_config(a.config, a.overrides)
     dev = "cuda" if torch.cuda.is_available() else "cpu"
-    ck = torch.load(a.ckpt or os.path.join(cfg["run_dir"], "final.pt"), map_location=dev,
-                    weights_only=False)
+    path = a.ckpt or os.path.join(cfg["run_dir"], "final.pt")
+    if not os.path.exists(path):
+        summ = os.path.join(cfg["run_dir"], "train_summary.json")
+        status = open(summ).read() if os.path.exists(summ) else "no train_summary.json"
+        raise SystemExit(f"{path} not found: training did not complete.\n{status}\n"
+                         f"see {cfg['run_dir']}/train_log.jsonl (pass --ckpt .../checkpoint.pt "
+                         "to evaluate a partial run deliberately)")
+    ck = torch.load(path, map_location=dev, weights_only=False)
     model = build_model(cfg["model"]).to(dev)
     model.load_state_dict(ck["model"])
     model.eval()

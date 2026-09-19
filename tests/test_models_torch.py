@@ -77,3 +77,20 @@ def test_cms_adapter_schedule():
     for n, p in model.named_parameters():
         changed = not torch.equal(before[n], p)
         assert changed == (".mlp." in n), n
+
+
+def test_hope_stable_with_large_activations():
+    """Regression for the first smoke run: the self-referential projection memories diverged
+    once activations grew (quadratic feedback through raw v = M_v u)."""
+    torch.manual_seed(0)
+    m = build_model(TINY_H)
+    with torch.no_grad():
+        m.embed.weight.mul_(50.0)
+        for b in m.blocks:
+            b.mixer.w_u.weight.mul_(20.0)
+            b.mixer.w_eta.bias.fill_(5.0)                 # near-maximal inner step size
+    x = torch.randint(0, 97, (2, 256))
+    y = m(x)
+    assert torch.isfinite(y).all()
+    torch.nn.functional.cross_entropy(y.reshape(-1, 97), x.reshape(-1)).backward()
+    assert all(torch.isfinite(p.grad).all() for p in m.parameters() if p.grad is not None)

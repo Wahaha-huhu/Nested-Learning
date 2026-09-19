@@ -49,7 +49,9 @@ def incontext_mlp_scan(a, v, eta, log_alpha, W1_0, W2_0, chunk):
         gW2 = e.transpose(-1, -2) @ g                # (B,H,d,h)
         dz = (e @ W2) * _dsilu(z)                    # (B,H,c,h)
         gW1 = dz.transpose(-1, -2) @ A               # (B,H,h,d)
-        ret = torch.exp(log_alpha[:, :, sl].sum(-1))[..., None, None]
+        # one retention gate per update (Eq. 71 updates once per chunk); the chunk mean of the
+        # per-token gates. Summing 512 per-token log-gates would erase ~97% of D every chunk.
+        ret = torch.exp(log_alpha[:, :, sl].mean(-1))[..., None, None]
         D1 = ret * D1 - gW1                          # retention toward the meta-learned init
         D2 = ret * D2 - gW2
     return torch.cat(outs, dim=2)

@@ -25,6 +25,7 @@ gradient-magnitude dependence the paper's explanation relies on. Both are report
 | D-HOPE-5 | self-generated values for all memories | M_k, M_v self-generated; M_memory uses the standard value v (`self_values_memory=true` switches) |
 | D-HOPE-6 | chunk-wise parallel training | mini-batch semantics: errors at chunk-start state; memory read exact within the chunk |
 | D-HOPE-7 | two chunk sizes | one size (64) by default; `proj_every` sets a lower frequency for M_k, M_v. The paper's figure suggests 16; 64 is used for throughput |
+| D-HOPE-9 | self-generated values v_hat = M v | the self-referential error of M_k, M_v uses l2norm(v); with raw v = M_v u the update is quadratic in M_v and diverges (found in the first smoke run) |
 | D-HOPE-8 | inner step sizes unspecified | eta_t = 0.2 sigmoid(.), M_k/M_v step x0.1, retention init sigmoid(5)=0.993 |
 
 ## CMS in the from-scratch model (Sec. 7.1) — `nlrepro/models/cms.py`
@@ -33,6 +34,7 @@ gradient-magnitude dependence the paper's explanation relies on. Both are report
 |---|---|---|
 | D-CMS-1 | Eq. 71 error term = task-loss (NTP) gradient | local associative L2 loss ‖M(k) - v‖² (the NTP gradient is not available inside the forward pass) |
 | D-CMS-2 | chain of MLP levels, schedules not given for Table 2 | 2 levels: in-context 2-layer residual MLP memory (C = 512 tokens, reset per sequence to a meta-learned init) -> static SwiGLU (frequency 0); per-level norm + residual |
+| D-CMS-4 | retention per update | one gate per chunk update = exp(mean of the per-token log-gates) |
 | D-CMS-3 | parameter budget per level unspecified | static SwiGLU hidden 1152 so total params match Transformer++ within 1% |
 
 ## E01 (Sec. 7.3, 9.1) — `nlrepro/models/hf_cms.py`, `experiments/e01_class_incremental`

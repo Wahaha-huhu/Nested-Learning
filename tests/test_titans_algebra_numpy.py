@@ -37,7 +37,7 @@ def scan_np(u, q, eta, la, M0, C, rho, selfmod, selfval):
         w = (w_end * et)[..., None]
         Dm = dec * Dm - T(w * E) @ K
         if selfmod:
-            KV = K - V
+            KV = K - l2n(V)
             Dk = dec * Dk - rho * (T(w * (KV @ T(Mk))) @ K)
             Dv = dec * Dv - rho * (T(w * (KV @ T(Mv))) @ K)
     return np.concatenate(ys, 1)
@@ -59,8 +59,9 @@ def ref_np(u, q, eta, la, M0, C, rho, selfmod, selfval):
                 Dm = a * Dm - eta[h, t] * np.outer(e, k)
                 out[h, t] = (M0[2, h] + Dm) @ q[h, t]
                 if selfmod:
-                    Dk = a * Dk - rho * eta[h, t] * np.outer(Mk @ (k - v), k)
-                    Dv = a * Dv - rho * eta[h, t] * np.outer(Mv @ (k - v), k)
+                    vb = l2n(v)
+                    Dk = a * Dk - rho * eta[h, t] * np.outer(Mk @ (k - vb), k)
+                    Dv = a * Dv - rho * eta[h, t] * np.outer(Mv @ (k - vb), k)
     return out
 
 

@@ -21,6 +21,7 @@ What we reconstruct / simplify (all listed in docs/DEVIATIONS.md, D-HOPE-*):
   * D-HOPE-6  Mini-batch semantics inside a chunk: all errors are evaluated at the chunk-start
               state (as in Titans/TTT chunked training); the memory read is exact w.r.t. those
               updates (dual form), the projections k, v use the chunk-start state.
+  * D-HOPE-9  The self-referential error of M_k, M_v uses the normalised value l2norm(v).
   * D-HOPE-7  One chunk size for all memories by default (proj_every multiplies it for M_k, M_v).
 
 Row-vector convention: a memory M (d_out x d_in) maps x -> M x; batched rows use X @ M^T.
@@ -97,8 +98,10 @@ def selfmod_titans_scan(u, q, eta, log_alpha, M0, chunk, proj_lr_scale=0.1, proj
         w = (w_end * et).unsqueeze(-1)
         Dm = decay_end * Dm - (w * E).transpose(-1, -2) @ K
         if self_modifying:
-            # self-generated values v_hat_box = M_box v  ->  error M_box (k - v)
-            KV = K - V
+            # self-generated values v_hat_box = M_box v_bar -> error M_box (k - v_bar).
+            # v_bar = l2norm(v): with raw v = M_v u the error is quadratic in M_v and blows up
+            # once |u| grows during training (D-HOPE-9).
+            KV = K - l2norm(V)
             gk = (w * (KV @ Mk.transpose(-1, -2))).transpose(-1, -2) @ K
             gv = (w * (KV @ Mv.transpose(-1, -2))).transpose(-1, -2) @ K
             if proj_every == 1:
@@ -139,8 +142,9 @@ def selfmod_titans_reference(u, q, eta, log_alpha, M0, chunk, proj_lr_scale=0.1,
                     Dm = a * Dm - eta[b, h, t] * torch.outer(e, k)
                     out[b, h, t] = (M0m + Dm) @ q[b, h, t]
                     if self_modifying:
-                        Dk = a * Dk - proj_lr_scale * eta[b, h, t] * torch.outer(Mk @ (k - v), k)
-                        Dv = a * Dv - proj_lr_scale * eta[b, h, t] * torch.outer(Mv @ (k - v), k)
+                        vb = v / torch.sqrt((v * v).sum() + 1e-6)
+                        Dk = a * Dk - proj_lr_scale * eta[b, h, t] * torch.outer(Mk @ (k - vb), k)
+                        Dv = a * Dv - proj_lr_scale * eta[b, h, t] * torch.outer(Mv @ (k - vb), k)
     return out
 
 
