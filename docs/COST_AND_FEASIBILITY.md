@@ -42,6 +42,22 @@ the optimisation is unchanged). Use the **4090**. Switch to
 an A100 80GB only for E01 with a 3B backbone (paper-nearer; ~45 GiB state if fully trained) or
 E06 above ~350M params.
 
+## Measured so far (RTX 4090)
+
+| Date | Arm | Setting | tokens/s | peak GiB | projected 1B-token run |
+|---|---|---|---:|---:|---|
+| 1st profile | Hope 110M | micro 2, no checkpointing (4 and 8 OOM) | 2,328 | 12.5 | 119 h / $88: over the 30 h cap |
+
+Diagnosis: Hope's chunk loop (32 chunks x 12 layers) is kernel-launch bound, so time per
+micro-step barely depends on the micro-batch, while autograd stores ~6 GB of per-chunk memory
+states per sequence. Block checkpointing trades one extra forward for storing only block inputs,
+which should allow micro-batch 16-32 and amortise the launch overhead. The profiler now
+measures both modes and keeps the faster one.
+
+Decision rule if Hope still projects above 30 h after this: (a) raise the cap if <= 40 h;
+(b) otherwise halve the token budget for BOTH arms (0.5B tokens), keeping the comparison fair;
+(c) not preferred: larger Titans chunk (fewer loop iterations, but it changes the model).
+
 ## Measure before committing
 
 1. `make smoke` (~15 min, < $0.25): runs every pipeline end-to-end and ends with a full-size
